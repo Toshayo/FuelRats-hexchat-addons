@@ -18,13 +18,16 @@ if current_system_name is None:
 
 
 def get_system_coords(system_name):
-	return requests.get(
+	r = requests.get(
 		SYSTEMS_API,
 		params={
 			'systemName': system_name,
 			'showCoordinates': 1
 		}
-	).json()['coords']
+	).json()
+	if 'coords' not in r:
+		return None
+	return r['coords']
 
 
 def on_message(word, word_eol, userdata):
@@ -71,9 +74,15 @@ def on_message(word, word_eol, userdata):
 def on_sethome(word, word_eol, userdata):
 	global home_system_name, home_system_coords, home_custom_name
 	
-	home_system_name = word_eol[1]
+	new_home_system_name = word_eol[1]
+	new_coords = get_system_coords(new_home_system_name)
+	if new_coords is None:
+		hexchat.emit_print('Channel Message', __module_name__, 'Unknown system!', '@')
+		return hexchat.EAT_ALL
+
+	home_system_name = new_home_system_name
 	home_custom_name = home_system_name
-	home_system_coords = get_system_coords(home_system_name)
+	home_system_coords = new_coords
 	
 	if hexchat.set_pluginpref('HOME', current_system_name) and hexchat.set_pluginpref('HOMENAME', current_system_name):
 		hexchat.emit_print('Channel Message', __module_name__, 'Home has been set to "' + home_system_name + '"', '@')
@@ -97,8 +106,14 @@ def on_sethomename(word, word_eol, userdata):
 def on_setpos(word, word_eol, userdata):
 	global current_system_name, current_system_coords
 	
-	current_system_name = word_eol[1]
-	current_system_coords = get_system_coords(current_system_name)
+	new_system_name = word_eol[1]
+	new_coords = get_system_coords(new_system_name)
+	if new_coords is None:
+		hexchat.emit_print('Channel Message', __module_name__, 'Unknown system!', '@')
+		return hexchat.EAT_ALL
+
+	current_system_name = new_system_name
+	current_system_coords = new_coords
 	
 	if hexchat.set_pluginpref('CUR_SYSNAME', current_system_name):
 		hexchat.emit_print('Channel Message', __module_name__, 'Current position has been set to "' + current_system_name + '"', '@')
